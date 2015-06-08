@@ -1,7 +1,86 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: Baskerville;
+  text-align: center;
+}
+
+h1 {
+  font-weight: normal;
+  font-size: 1.8em;
+}
+
+.link {
+  stroke: #000;
+}
+
+.node {
+  stroke: #fff;
+}
+
+.legend {
+  width: 75%;
+  text-align: left;
+  font-size: .8em;
+}
+
+.legend p {
+  margin: 0;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.y.axis .tick {
+  font-size: .75em;
+}
+
+.area {
+  fill-opacity: .15;
+}
+
+.line {
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+.annotation {
+  font-size: 1.1em;
+}
+
+.annotation p {
+  margin: 0;
+  padding: 0;
+}
+</style>
 </head>
 <body>
-<p>Content will go here</p>
+<h1>Visualizing Citation Networks Over Time</h1>
+<div id="graphDiv"></div>
+<div id="yearsDiv"></div>
+<button id="yearButton", style="opacity: 0.4">Next Year</button>
+<div id="displayYear">Init</div>
+<button id="disconnectButton">Disconnect Ego Node</button>
+<button id="speedUpButton">Faster</button>
+<button id="stopButton">STOP</button>
+<div id="nodeInfo"><p></p></div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<!-- <script src="../d3.v3.js"></script> -->
+<script src="animation.js"></script>
 </body>
 </html>
+
+
+
