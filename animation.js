@@ -39,6 +39,8 @@ function hieterGraph() {
 	self.yearsClipPath;
 	self.yearsCurrYearVerticalLine;
 
+	self.annotation1Div;
+
 	self.totalPapersBeforeLimiting;
 	self.maxNodes = 100;
 
@@ -104,7 +106,6 @@ function hieterGraph() {
 
 	self.advanceYear = function() {
 		self.currYear++;
-		d3.select('#displayYear').html(self.currYear);
 		self.updateNodesAndLinks();
 		self.updateLineChart();
 		if (self.currYear >= d3.max(self.allNodes, function(d) { return d.Year; }))
@@ -189,10 +190,16 @@ function hieterGraph() {
 hieterGraph.prototype.init = function() {
 	var self = this;
 
+
+
 	self.svg = d3.select('#graphDiv').append('svg')
 			.attr('id', 'graphSvg')
 			.attr('width', self.width)
 			.attr('height', self.height);
+			
+	// Put up initial annotation
+	self.annotation1();
+
 	self.group = self.svg.append('g');
 	self.link = self.group.append('svg:g')
 			.attr('class', 'links')
@@ -221,6 +228,9 @@ hieterGraph.prototype.init = function() {
 		});
 		self.allNodes = self.allNodes.filter(function(d) { return d.Year != 0; });
 
+
+		self.totalPapersBeforeLimiting = self.allNodes.length
+		self.makeDescription();
 
 		self.limitData();
 		// sort by Year
@@ -302,7 +312,6 @@ hieterGraph.prototype.init = function() {
 			self.legendInit();
 
 
-			self.makeLegend();
 			//self.updateNodesAndLinks();
 
 			// Repeatedly call advanceYear on a timer
@@ -320,7 +329,6 @@ hieterGraph.prototype.limitData = function() {
 
 	// Remove some of the low Eigenfactor nodes
 
-	self.totalPapersBeforeLimiting = self.allNodes.length
 
 	// Start by randomizing the order of all the nodes
 	d3.shuffle(self.allNodes);
@@ -351,6 +359,8 @@ hieterGraph.prototype.addEventListeners = function() {
 	});
 
 	d3.select('#stopButton').on('click', function() { clearInterval(self.timer); });
+
+	d3.select('#reloadButton').on('click', function() { window.location.reload(true); });
 };
 
 hieterGraph.prototype.graphInit = function() {
@@ -409,6 +419,8 @@ hieterGraph.prototype.graphInit = function() {
 			else { return .2; }
 		});
 	
+
+
 	self.force.start();
 	// Execute force a bit, then stop
 	for (var i = 0; i<1000; ++i) self.force.tick();
@@ -462,7 +474,11 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 		if (self.currYear == self.egoNode.Year) 
 			{self.yearTextDisplay.transition()
 				.duration(1000)
-				.style('opacity', .15); }
+				.style('opacity', .15);
+			self.legend.transition()
+				.delay(2000)
+				.duration(1000)
+				.style('opacity', 1);}
 
 
 
@@ -525,13 +541,39 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 //		.on('mouseout', function() { setTimeout( function() {
 //			d3.select('#nodeInfo').select('p').html('')
 //		}, 2500)});
-		.on('mouseout', function() { 
-			d3.select('#nodeInfo').transition().delay(2500)
-				.attr('class', 'hidden');
-		});
+		//.on('mouseout', function() { 
+		//	d3.select('#nodeInfo').transition().delay(2500)
+		//		.attr('class', 'hidden');
+		//});
 	
 
 
+};
+
+hieterGraph.prototype.annotation1 = function() {
+	var self = this;
+
+	// TODO: this was hacked together. make it better.
+	// see the CSS animations
+	var annotation1Grp = self.svg.append('g');
+	self.annotation1Div = annotation1Grp.append('foreignObject').attr('class', 'externalObject') 
+                                .attr('x', 150) 
+                                .attr('y', 150) 
+                                .attr('height', 500) 
+                                .attr('width', 300) 
+                                .append('xhtml:div') 
+                                .attr('class', 'annotation fadeIn'); 
+        self.annotation1Div.append('p') 
+                .html('The paper'); 
+        self.annotation1Div.append('p') 
+                .html('<strong>Ctf7p is essential for sister chromatid cohesion and links mitotic chromosome structure to the DNA replication machinery</strong>'); 
+        self.annotation1Div.append('p') 
+                .html('was published in the journal <em>Genes & Development</em> in 1999.');
+	
+	
+	self.annotation1Div.transition()
+		.delay(8000)
+		.attr('class', 'annotation fadeOut');
 };
 
 
@@ -573,17 +615,14 @@ hieterGraph.prototype.makeForce = function () {
         .on('tick', this.tick);
 };
 
-hieterGraph.prototype.makeLegend = function() {
+hieterGraph.prototype.makeDescription = function() {
 	var self = this;
 
-	var legend = d3.select('body').append('div').attr('class', 'legend');
-	legend.append('p').html('Each node represents one paper. Edges represent one paper citing another.');
-	legend.append('p').html('In order to simplify the display, only ' + self.maxNodes + ' papers are shown (out of ' + self.totalPapersBeforeLimiting + '). Papers with lower Eigenfactor scores are discarded first.');
-	legend.append('p').style('color', self.colorScheme[4]).html('Paper of interest (ego node)');
-	legend.append('p').style('color', self.colorScheme[0]).html('Papers in cluster 28');
-	legend.append('p').style('color', self.colorScheme[1]).html('Papers in cluster 2');
-	legend.append('p').style('color', self.colorScheme[4]).html('Papers in the same cluster as the ego node');
-	legend.append('p').style('color', self.colorScheme[2]).html('All other papers');
+	var description = d3.select('#description')
+	//var description = d3.select('body').append('div').attr('class', 'description');
+	
+	description.append('p').html('Each node represents one paper. Edges represent one paper citing another.');
+	description.append('p').html('In order to simplify the display, only ' + self.maxNodes + ' papers are shown (out of ' + self.totalPapersBeforeLimiting + '). Papers with lower Eigenfactor scores are discarded first.');
 };
 
 hieterGraph.prototype.legendInit = function() {
@@ -596,6 +635,7 @@ hieterGraph.prototype.legendInit = function() {
 	self.legend = self.svg.append('g')
 		.attr('class', 'legend')
 		.attr('transform', 'translate('+padding+','+padding+')')
+		.style('opacity', 1e-9);
 
 	self.legend.append('svg:rect')
 		.attr('width', squareSize)
@@ -804,8 +844,10 @@ hieterGraph.prototype.displayNodeInfo = function(d) {
 	var nodeInfo = d3.select('#nodeInfo')
 	nodeInfo.classed('hidden', false);
 	var spc = "&nbsp;&nbsp;&nbsp;&nbsp;";
-	var displayText = "pID: " + d.pID + spc + "cluster: " + d.cluster + spc + "year: " + d.Year;
-	nodeInfo.select('p').html(displayText);
+	var displayText = "pID: " + d.pID + spc + "cluster: " + d.cluster + spc + "year: " + d.Year ;
+	nodeInfo.select('.line1').html(displayText);
+	nodeInfo.select('.line2').html(d.Title);
+	nodeInfo.selectAll('p').attr('color', self.colorScheme[4]);
 };
 
 	

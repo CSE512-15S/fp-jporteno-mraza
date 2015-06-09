@@ -27,8 +27,9 @@ h1 {
   font-size: .8em;
 }
 
-.legend p {
+#description p {
   margin: 0;
+  font-size: .8em;
 }
 
 .axis path,
@@ -57,11 +58,57 @@ h1 {
 
 .annotation {
   font-size: 1.1em;
+  pointer-events: none;
+}
+
+.fadeIn {
+  -webkit-animation: fade 2s;
+  animation: fade 2s;
+  opacity: 1
+}
+/* -fail- */
+@-webkit-keyframes fade {
+  from {opacity: 0}
+  to {opacity: 1}
+}@keyframes fade {
+  from {opacity: 0}
+  to {opacity: 1}
+}
+
+.fadeOut {
+  -webkit-animation: fadeout 3s;
+  animation: fadeout 3s;
+  opacity: 0
+}
+/* -fail- */
+@-webkit-keyframes fadeout {
+  from {opacity: 1}
+  to {opacity: 0}
+}@keyframes fadeout {
+  from {opacity: 1}
+  to {opacity: 0}
 }
 
 .annotation p {
   margin: 0;
   padding: 0;
+}
+
+#nodeInfo p{
+  margin: 0;
+  padding: 0;
+  font-size: .7em;
+}
+
+#nodeInfo .line1{
+  margin-top: 5px;
+}
+#nodeInfo .line2{
+  margin-bottom: 5px;
+}
+
+button {
+  font-size: 8px;
 }
 </style>
 </head>
@@ -69,15 +116,16 @@ h1 {
 <h1>Visualizing Citation Networks Over Time</h1>
 <div id="graphDiv"></div>
 <div id="yearsDiv"></div>
+<div id="description"></div>
+<div id="nodeInfo"><p class="line1"></p><p class="line2"</p></div>
 <button id="yearButton", style="opacity: 0.4">Next Year</button>
-<div id="displayYear">Init</div>
 <button id="disconnectButton">Disconnect Ego Node</button>
 <button id="speedUpButton">Faster</button>
 <button id="stopButton">STOP</button>
-<div id="nodeInfo"><p></p></div>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-	<!-- <script src="../d3.v3.js"></script> -->
+<button id="reloadButton">Reload</button>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<!-- <script src="../d3.v3.js"></script> -->
 <script src="animation.js"></script>
 </body>
 </html>
