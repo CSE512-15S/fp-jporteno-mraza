@@ -18,5 +18,5 @@ We developed a novel adaptation of the node-link diagram for representing schola
 
 ## Running Instructions
 
-Access our visualization at http://cse512-15s.github.io/fp-jporteno-mraza/ or download this repository and run `python -m SimpleHTTPServer 9000` and access this from http://localhost:9000/.
+Access our visualization at http://cse512-15s.github.io/fp-jporteno-mraza/ or download this repository and run `python -m SimpleHTTPServer 9000` and access this from http://localhost:9000/. Use full-screen mode for the best experience.
 
