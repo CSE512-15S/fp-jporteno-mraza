@@ -1,140 +1,66 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
 <head>
-<meta charset="utf-8">
-<style>
-body {
-  font-family: Baskerville;
-  text-align: center;
-}
+  <title>CSE512: Data Visualization</title>
+  <meta name="robots" content="index,follow" />
+  <link rel="stylesheet" type="text/css" href="http://courses.cs.washington.edu/courses/cse512/15sp/style.css"/>
 
-h1 {
-  font-weight: normal;
-  font-size: 1.8em;
-}
-
-.link {
-  stroke: #000;
-}
-
-.node {
-  stroke: #fff;
-}
-
-.legend {
-  width: 75%;
-  text-align: left;
-  font-size: .8em;
-  pointer-events: none;
-}
-
-#description p {
-  margin: 0;
-  font-size: .8em;
-}
-
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.y.axis .tick {
-  font-size: .75em;
-}
-
-.area {
-  fill-opacity: .15;
-}
-
-.line {
-  stroke-width: 1.5px;
-  fill: none;
-}
-
-.hidden {
-  visibility: hidden;
-}
-
-.annotation {
-  font-size: 1.1em;
-  pointer-events: none;
-}
-
-/*.fadeIn {
-  -webkit-animation: fade 2s;
-  animation: fade 2s;
-  opacity: 1
-}
-*/
-/* -fail- */
-/*
-@-webkit-keyframes fade {
-  from {opacity: 0}
-  to {opacity: 1}
-}@keyframes fade {
-  from {opacity: 0}
-  to {opacity: 1}
-}
-
-.fadeOut {
-  -webkit-animation: fadeout 3s;
-  animation: fadeout 3s;
-  opacity: 0
-}
-*/
-/* -fail- */
-/*
-@-webkit-keyframes fadeout {
-  from {opacity: 1}
-  to {opacity: 0}
-}@keyframes fadeout {
-  from {opacity: 1}
-  to {opacity: 0}
-}
-*/
-.annotation p {
-  margin: 0;
-  padding: 0;
-}
-
-#nodeInfo p{
-  margin: 0;
-  padding: 0;
-  font-size: .7em;
-}
-
-#nodeInfo .line1{
-  margin-top: 5px;
-}
-#nodeInfo .line2{
-  margin-bottom: 5px;
-}
-
-button {
-  font-size: 8px;
-}
-</style>
 </head>
+
 <body>
-<h1>Visualizing Citation Networks Over Time</h1>
-<div id="graphDiv"></div>
-<div id="yearsDiv"></div>
-<div id="description"></div>
-<div id="nodeInfo"><p class="line1"></p><p class="line2"</p></div>
-<button id="yearButton", style="opacity: 0.4">Next Year</button>
-<button id="disconnectButton", style="opacity: 0.4">Disconnect Ego Node</button>
-<button id="pauseButton">Pause</button>
-<button id="speedUpButton">Faster</button>
-<button id="stopButton">STOP</button>
-<button id="reloadButton">Reload</button>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-<!-- <script src="../d3.v3.js"></script> -->
-<script src="animation.js"></script>
+  <div class='content wider'>
+
+    <div class='title'>
+      <a href="http://courses.cs.washington.edu/courses/cse512/15sp/"><strong>CSE512</strong></a>
+         Projects
+         <small>(Spring 2015)</small>
+    </div>
+    <br/>
+
+    <div class='pub' data-spy="scroll" data-target=".navbar">
+
+      <h1 class="title">Visualizing Citation Networks Over Time</h1>
+      <div class="authors">
+        <a href="http://coursector.org/about/about.html#jason">Jason Portenoy</a>,
+        <a href="https://datalab.ischool.uw.edu/">Muhammed Raza Khan</a>
+      </div>
+
+      <div class="figure"><a href="http://cse512-15s.github.io/fp-jporteno-mraza/animation.html">
+        <img src="summary.png" width="100%"/>
+        <div class="caption">A network of citations between scholarly publications builds out year by year.</div>
+</a></div>
+
+      <p>
+	We developed a novel adaptation of the node-link diagram for representing scholarly literature as networks of papers connected by citations. In our visualization, the influence of a particular paper is viewed over time. The viewer watches as the network builds year by year following the paper's publication, seeing the relative impact that the paper has had both within its own field and across other fields. As the narrative visualization progresses, important points---such as a citation by a paper in a different field---are identified, and annotations are automatically generated which give the viewer context.
+      </p>
+      
+      <h2>Software</h2>
+      <p>
+        Try it online <a href="http://cse512-15s.github.io/fp-jporteno-mraza/animation.html">here</a>. 
+      </p>
+
+      <h2>Materials</h2>
+      <div class="links">
+        <a href="final/paper-jporteno-mraza.pdf" >PDF</a>
+        |
+        <a href="final/poster-jporteno-mraza.pdf" >Poster</a>
+        |
+        <a href="https://github.com/CSE512-15S/fp-jporteno-mraza/">Code</a>
+      </div>
+
+
+
+      <div class='footer'>
+        <a href='http://cs.washington.edu'>Computer Science &amp; Engineering</a> -
+        <a href='http://www.washington.edu'>University of Washington</a>
+      </div>
+    </div>
+    <br/>
+    <br/>
+
+
+  </div>
 </body>
+
 </html>
-
-
-

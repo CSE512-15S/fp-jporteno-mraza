@@ -202,13 +202,19 @@ function hieterGraph() {
 	}
 
 	// Repeatedly call advanceYear on a timer
+//	self.startIntervalTimer = function() {
+//		setTimeout(function() {
+//			clearInterval(self.timer);
+//			self.timer = window.setInterval(function() {
+//				self.advanceYear()
+//			}, self.transitionTimePerYear);
+//		});
+//	};
 	self.startIntervalTimer = function() {
-		setTimeout(function() {
 			clearInterval(self.timer);
 			self.timer = window.setInterval(function() {
 				self.advanceYear()
 			}, self.transitionTimePerYear);
-		});
 	};
 
 	// todo: deprecate this
@@ -421,6 +427,14 @@ hieterGraph.prototype.addEventListeners = function() {
 	d3.select('#stopButton').on('click', function() { if (self.timer) clearInterval(self.timer); self.timer=0; });
 
 	d3.select('#reloadButton').on('click', function() { window.location.reload(true); });
+
+	d3.select('#annotationCheckBox').on('click', function() { 
+		self.doAnnotations = false;
+		d3.selectAll('.legendItem')
+			.transition().delay(1000).duration(2000)
+			.style('opacity', 1);
+	});
+		
 };
 
 
@@ -720,7 +734,7 @@ hieterGraph.prototype.annotationNewCluster = function(n) {
 		.transition().delay(1000).duration(3000)
 		.attr('r', 30)
 		//.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r') + 20; });
-		.transition().delay(3000).duration(3000)
+		.transition().delay(5000).duration(3000)
 		.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r'); });
 	self.svg.append('svg:line')
 		.attr('x1', position.x + (self.annotationWidth/2))
@@ -738,7 +752,7 @@ hieterGraph.prototype.annotationNewCluster = function(n) {
 	
 	var $annotation1Div = $('#annotationCluster' + clusterInfo.cluster);
 	//$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, function() {self.startIntervalTimer();});
-	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, self.startIntervalTimer);
+	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0, self.startIntervalTimer);
 	return;
 };
 
