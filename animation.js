@@ -16,6 +16,12 @@ function hieterGraph() {
 	self.width = 960;
 	self.height = 500;
 
+	self.doAnnotations = true;
+	// A few options for annotation position
+	self.annotationHeight = 250;
+	self.annotationWidth = 300;
+	self.annotationPositions = [{x: 150, y: 150}, {x:self.width - self.annotationWidth-50, y: self.height - self.annotationHeight - 50}];
+
 	self.yearsMargin = {top: 30, right: 20, bottom: 30, left: 50};
 	self.yearsWidth = self.width *3/4 - self.yearsMargin.left - self.yearsMargin.right;
 	self.yearsHeight = 110 - self.yearsMargin.top - self.yearsMargin.bottom;
@@ -60,9 +66,19 @@ function hieterGraph() {
 	self.currLinks;
 	self.currYear;
 
+
 	// Colors
 	// See http://colorbrewer2.org/?type=qualitative&scheme=Accent&n=5
 	self.colorScheme = ['rgb(127,201,127)','rgb(190,174,212)','rgb(253,192,134)','rgb(255,255,153)','rgb(56,108,176)'];
+
+	self.clusters = [{'cluster': '2', 'title': 'Immunobiology', 'color': self.colorScheme[1], 'alreadyAnnotated': false},
+			{'cluster': '28', 'title': 'Cancer and Genetics', 'color': self.colorScheme[0], 'alreadyAnnotated': false}];
+//	self.clusters = {'28': {'title': 'Cancer and Genetics', 'color': self.colorScheme[0]},
+//			'2': {'title': 'Immunobiology', 'color': self.colorScheme[1]}};
+	self.clustersToAnnotate = []
+	for (var i=0; i < self.clusters.length; i++) {
+		self.clustersToAnnotate.push(self.clusters[i].cluster);
+	}
 
 	// Scale for sizing nodes by Eigenfactor.
 	// Defined in graphInit
@@ -108,12 +124,28 @@ function hieterGraph() {
 		self.currYear++;
 		self.updateNodesAndLinks();
 		self.updateLineChart();
+		console.log(self.currYear);
 		if (self.currYear >= d3.max(self.allNodes, function(d) { return d.Year; }))
-			{self.finishAnimation();}
+			{console.log('goto finish'); 
+			self.finishAnimation();}
 	}
 
 	self.finishAnimation = function() {
-		self.stopIntervalTimer();
+		//self.stopIntervalTimer();
+		if (self.timer) clearInterval(self.timer);
+		window.clearInterval(self.timer);
+		self.timer = 0;
+		d3.selectAll('#speedUpButton,#pauseButton,#stopButton')
+			.on('click',null)
+			.style('pointer-events', 'none')
+			.transition().duration(1000)
+			.style('opacity', .4);
+		
+		// Enable disconnect button.
+		d3.select('#disconnectButton').on('click', self.disconnectEgoNode)
+			.style('pointer-events', 'auto')
+			.transition().duration(1000)
+			.style('opacity', 1);
 		d3.selectAll('.node').transition().delay(1000)
 			.duration(self.transitionTimePerYear*2)
 			.style('opacity', .9);
@@ -131,6 +163,11 @@ function hieterGraph() {
 		//				return n.pID===self.egoID;})[0];
 		//egoNodeIndex = egoNodeIndex.index
 		//console.log(egoNodeIndex);
+		d3.select('#disconnectButton')
+			.on('click', null)
+			.style('pointer-events', 'none')
+			.transition().duration(1000)
+			.style('opacity', .4);
 		var egoNodeIndex = 0;
 
 		var retractDuration = 500;
@@ -167,6 +204,7 @@ function hieterGraph() {
 	// Repeatedly call advanceYear on a timer
 	self.startIntervalTimer = function() {
 		setTimeout(function() {
+			clearInterval(self.timer);
 			self.timer = window.setInterval(function() {
 				self.advanceYear()
 			}, self.transitionTimePerYear);
@@ -175,7 +213,8 @@ function hieterGraph() {
 
 	// todo: deprecate this
 	self.stopIntervalTimer = function() {
-		clearInterval(self.timer);
+		if (self.timer) clearInterval(self.timer);
+		self.timer = 0;
 	};
 
 	
@@ -198,7 +237,7 @@ hieterGraph.prototype.init = function() {
 			.attr('height', self.height);
 			
 	// Put up initial annotation
-	self.annotation1();
+	if (self.doAnnotations) self.annotation1();
 
 	self.group = self.svg.append('g');
 	self.link = self.group.append('svg:g')
@@ -347,21 +386,43 @@ hieterGraph.prototype.limitData = function() {
 hieterGraph.prototype.addEventListeners = function() {
 	var self = this;
 
+	var pauseButtonClicked = function() {
+		var $pauseButton = $('#pauseButton');
+		if ( $pauseButton.hasClass('clicked') )
+		{$pauseButton.removeClass('clicked')
+			.html('Pause');
+		self.startIntervalTimer(); }
+		else
+		{$pauseButton.addClass('clicked')
+			.html('Resume');
+		console.log(self.timer);
+		if (self.timer) clearInterval(self.timer);
+		self.timer = 0; }
+	};
+
 	// Add event listeners to buttons:
 	d3.select('#yearButton').on('click', self.advanceYear);
 
-	d3.select('#disconnectButton').on('click', self.disconnectEgoNode);
+	d3.select('#disconnectButton').style('pointer-events', 'none');
+
+	d3.select('#pauseButton').on('click', pauseButtonClicked);
 	
 	d3.select('#speedUpButton').on('click', function() {
 		self.transitionTimePerYear = 150;
-		self.stopIntervalTimer();
+		self.doAnnotations = false; // Turn off annotations
+		if (self.timer) clearInterval(self.timer);
+		self.timer = 0;
+		d3.selectAll('.legendItem')
+			.transition().delay(1000).duration(2000)
+			.style('opacity', 1);
 		self.startIntervalTimer();
 	});
 
-	d3.select('#stopButton').on('click', function() { clearInterval(self.timer); });
+	d3.select('#stopButton').on('click', function() { if (self.timer) clearInterval(self.timer); self.timer=0; });
 
 	d3.select('#reloadButton').on('click', function() { window.location.reload(true); });
 };
+
 
 hieterGraph.prototype.graphInit = function() {
 	var self = this;
@@ -442,6 +503,13 @@ hieterGraph.prototype.graphInit = function() {
 		.attr('r', function(d) {
 			return 4.5 + (self.eigenFactorScale(d.EF) * 10);
 		})
+		.each('end', function() {
+			// reveal legend
+			self.legend.transition()
+				.delay(4000)
+				.duration(1000)
+				.style('opacity', 1);
+		});
 
 };
 
@@ -475,10 +543,7 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 			{self.yearTextDisplay.transition()
 				.duration(1000)
 				.style('opacity', .15);
-			self.legend.transition()
-				.delay(2000)
-				.duration(1000)
-				.style('opacity', 1);}
+	}
 
 
 
@@ -536,6 +601,25 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 			d.linksThisNodeIsSource.classed('hidden', false)
 				.classed('visible', true);
 			drawLinks(d.linksThisNodeIsSource);
+			var clusterSplit = d.cluster.split(':');
+
+
+			// Put up annotation if a node comes from a new cluster
+			// Also reveal this cluster in the legend
+			var clusterIndex = self.clustersToAnnotate.indexOf(clusterSplit[0])
+			if (clusterIndex > -1)
+				{ if ( (self.doAnnotations ) && ( !self.clusters[clusterIndex].alreadyAnnotated ))
+					{ self.annotationNewCluster(d);
+					d3.select('#legendCluster' + self.clusters[clusterIndex].cluster)
+						.transition().delay(1000).duration(2000)
+						.style('opacity', 1);
+					self.clusters[clusterIndex].alreadyAnnotated = true; } }
+
+			// Put up annotation when the highest Eigenfactor node appears
+			// Commented out because it happens too early for this paper and interferes with flow
+			//if (d.EF === d3.max(self.allNodes, function(dd) { return dd.EF; }))
+				//{ console.log('highest EF'); self.annotationHighestEF(d); }
+
 		});
 	d3.selectAll('.node').on('mouseover', self.displayNodeInfo)
 //		.on('mouseout', function() { setTimeout( function() {
@@ -555,25 +639,135 @@ hieterGraph.prototype.annotation1 = function() {
 
 	// TODO: this was hacked together. make it better.
 	// see the CSS animations
-	var annotation1Grp = self.svg.append('g');
-	self.annotation1Div = annotation1Grp.append('foreignObject').attr('class', 'externalObject') 
-                                .attr('x', 150) 
-                                .attr('y', 150) 
-                                .attr('height', 500) 
-                                .attr('width', 300) 
-                                .append('xhtml:div') 
-                                .attr('class', 'annotation fadeIn'); 
+	//var annotation1Grp = self.svg.append('g');
+	//self.annotation1Div = annotation1Grp.append('foreignObject').attr('class', 'externalObject') 
+        //                        .attr('x', 150) 
+        //                        .attr('y', 150) 
+        //                        .attr('height', 500) 
+        //                        .attr('width', 300) 
+        //                        .append('xhtml:div') 
+        //                        .attr('class', 'annotation fadeIn'); 
+        //self.annotation1Div.append('p') 
+        //        .html('The paper'); 
+        //self.annotation1Div.append('p') 
+        //        .html('<strong>Ctf7p is essential for sister chromatid cohesion and links mitotic chromosome structure to the DNA replication machinery</strong>'); 
+        //self.annotation1Div.append('p') 
+        //        .html('was published in the journal <em>Genes & Development</em> in 1999.');
+	//
+	//
+	//self.annotation1Div.transition()
+	//	.delay(8000)
+	//	.attr('class', 'annotation fadeOut');
+
+
+	self.annotation1Div = self.svg.append('foreignObject').attr('class', 'externalObject')
+		.attr('x', self.annotationPositions[0].x)
+		.attr('y', self.annotationPositions[0].y)
+		.attr('height', self.annotationHeight)
+		.attr('width', self.annotationWidth)
+		.append('xhtml:div')
+		.attr('class', 'annotation')
+		.attr('id', 'annotation1')
+		.style('opacity', 0);
         self.annotation1Div.append('p') 
                 .html('The paper'); 
         self.annotation1Div.append('p') 
                 .html('<strong>Ctf7p is essential for sister chromatid cohesion and links mitotic chromosome structure to the DNA replication machinery</strong>'); 
         self.annotation1Div.append('p') 
                 .html('was published in the journal <em>Genes & Development</em> in 1999.');
+	self.annotation1Div.append('p')
+		.html('Here is the impact it has had since.');
 	
+	var $annotation1Div = $('#annotation1');
+	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0);
+};
+
+hieterGraph.prototype.annotationNewCluster = function(n) {
+	var self = this;
+	if (self.timer) clearInterval(self.timer);
+	self.timer = 0;
+	var clusterSplit = n.cluster.split(':');
+	var clusterInfo = self.clusters[self.clustersToAnnotate.indexOf(clusterSplit[0])];
+	// Adjust position based on where the node is
+	if (n.x > self.width/2) 
+		{ var position = self.annotationPositions[0]; }
+	else
+		{ var position = self.annotationPositions[1]; }
+	var externalObj = self.svg.append('foreignObject').attr('class', 'externalObject')
+		.attr('x', position.x)
+		.attr('y', position.y)
+		.attr('height', self.annotationHeight)
+		.attr('width', self.annotationWidth)
+	var annotationDiv = externalObj.append('xhtml:div')
+		.attr('class', 'annotation')
+		.attr('id', 'annotationCluster' + clusterInfo.cluster)
+		.style('opacity', 0);
+        annotationDiv.append('p') 
+                .html('In ' + self.currYear + ' our paper was cited by the paper'); 
+        annotationDiv.append('p') 
+                .html('<strong>' + n.Title + '</strong>,'); 
+        annotationDiv.append('p') 
+                .html('a paper in the field:');
+        annotationDiv.append('p') 
+		.style('color', clusterInfo.color)
+		.style('font-weight', 'bold')
+		.html(clusterInfo.title + ',');
+	annotationDiv.append('p')
+		.html('the first time it was cited in this field.');
+	console.log(n);
+	d3.selectAll('.node')
+		.filter(function(d) {return d.pID===n.pID;})
+		.transition().delay(1000).duration(3000)
+		.attr('r', 30)
+		//.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r') + 20; });
+		.transition().delay(3000).duration(3000)
+		.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r'); });
+	self.svg.append('svg:line')
+		.attr('x1', position.x + (self.annotationWidth/2))
+		.attr('x2', n.x)
+		.attr('y1', position.y + (self.annotationHeight/5))
+		.attr('y2', n.y)
+		.attr('stroke-width', 2)
+		.attr('stroke', clusterInfo.color)
+		.style('stroke-dasharray', ('5, 2'))
+		.style('opacity', 0)
+		.transition().delay(300).duration(2000)
+		.style('opacity', .7)
+		.transition().delay(3000).duration(3000)
+		.style('opacity', 0);
 	
-	self.annotation1Div.transition()
-		.delay(8000)
-		.attr('class', 'annotation fadeOut');
+	var $annotation1Div = $('#annotationCluster' + clusterInfo.cluster);
+	//$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, function() {self.startIntervalTimer();});
+	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, self.startIntervalTimer);
+	return;
+};
+
+hieterGraph.prototype.annotationHighestEF = function(n) {
+	var self = this;
+	if (self.timer) clearInterval(self.timer);
+	self.timer=0;
+	var divX = 150;
+	var divY = 150;
+	var divHeight = 500;
+	var divWidth = 300;
+	var externalObj = self.svg.append('foreignObject').attr('class', 'externalObject')
+		.attr('x', divX)
+		.attr('y', divY)
+		.attr('height', divHeight)
+		.attr('width', divWidth)
+	var annotationDiv = externalObj.append('xhtml:div')
+		.attr('class', 'annotation')
+		.attr('id', 'annotationEF')
+		.style('opacity', 0);
+        annotationDiv.append('p') 
+                .html('In ' + self.currYear + ' our paper was cited by the paper'); 
+        annotationDiv.append('p') 
+                .html('<strong>' + n.Title + '</strong>.'); 
+        annotationDiv.append('p') 
+                .html('This is the most influential paper in the network to date.');
+	var $annotation1Div = $('#annotationEF');
+	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, function() {self.startIntervalTimer();});
+	return;
 };
 
 
@@ -637,44 +831,68 @@ hieterGraph.prototype.legendInit = function() {
 		.attr('transform', 'translate('+padding+','+padding+')')
 		.style('opacity', 1e-9);
 
-	self.legend.append('svg:rect')
+	var legendItem = self.legend.append('g')
+		.attr('class', 'legendItem')
+		.attr('id', 'legendCluster12:32');
+	legendItem.append('svg:rect')
 		.attr('width', squareSize)
 		.attr('height', squareSize)
 		.attr('fill', self.colorScheme[4]);
-	self.legend.append('svg:text')
+	legendItem.append('svg:text')
 		.attr('transform', 'translate('+(sqrPlusPadding)+',0)')
 		.attr('dy', '1em')
 		.text('Papers in category "Genetics: DNA Replication" (cluster 12:32)');
 
-	self.legend.append('svg:rect')
+	var legendItem = self.legend.append('g')
+		.attr('class', 'legendItem')
+		.attr('id', 'legendCluster12');
+	legendItem.append('svg:rect')
 		.attr('width', squareSize)
 		.attr('height', squareSize)
 		.attr('transform', 'translate(0,'+(sqrPlusPadding)+')')
 		.attr('fill', self.colorScheme[2]);
-	self.legend.append('svg:text')
+	legendItem.append('svg:text')
 		.attr('transform', 'translate('+(sqrPlusPadding)+','+sqrPlusPadding+')')
 		.attr('dy', '1em')
 		.text('Papers in category "Genetics: Other" (cluster 12)');
 
-	self.legend.append('svg:rect')
-		.attr('width', squareSize)
-		.attr('height', squareSize)
-		.attr('transform', 'translate(0,'+(sqrPlusPadding*2)+')')
-		.attr('fill', self.colorScheme[0]);
-	self.legend.append('svg:text')
-		.attr('transform', 'translate('+(sqrPlusPadding)+','+(sqrPlusPadding*2)+')')
-		.attr('dy', '1em')
-		.text('Papers in category "Cancer and Genetics" (cluster 28)');
+	// make legend items for other clusters (start off hidden)
+	for (var i=0; i < self.clusters.length; i++) {
+		var legendItem = self.legend.append('g')
+			.attr('class', 'legendItem')
+			.attr('id', 'legendCluster' + self.clusters[i].cluster)
+			// start off hidden
+			.style('opacity', 0);
+		legendItem.append('svg:rect')
+			.attr('width', squareSize)
+			.attr('height', squareSize)
+			.attr('transform', 'translate(0,' + (sqrPlusPadding * (2 + i)) + ')')
+			.attr('fill', self.clusters[i].color);
+		legendItem.append('svg:text')
+			.attr('transform', 'translate(' + (sqrPlusPadding) + ',' + (sqrPlusPadding * (2 + i)) + ')')
+			.attr('dy', '1em')
+			.text('Papers in category "' + self.clusters[i].title + '" (cluster ' + self.clusters[i].cluster + ')');
+	}
 
-	self.legend.append('svg:rect')
-		.attr('width', squareSize)
-		.attr('height', squareSize)
-		.attr('transform', 'translate(0,'+(sqrPlusPadding*3)+')')
-		.attr('fill', self.colorScheme[1]);
-	self.legend.append('svg:text')
-		.attr('transform', 'translate('+(sqrPlusPadding)+','+(sqrPlusPadding*3)+')')
-		.attr('dy', '1em')
-		.text('Papers in category "Immunobiology" (cluster 2)');
+//	self.legend.append('svg:rect')
+//		.attr('width', squareSize)
+//		.attr('height', squareSize)
+//		.attr('transform', 'translate(0,'+(sqrPlusPadding*2)+')')
+//		.attr('fill', self.colorScheme[0]);
+//	self.legend.append('svg:text')
+//		.attr('transform', 'translate('+(sqrPlusPadding)+','+(sqrPlusPadding*2)+')')
+//		.attr('dy', '1em')
+//		.text('Papers in category "Cancer and Genetics" (cluster 28)');
+//
+//	self.legend.append('svg:rect')
+//		.attr('width', squareSize)
+//		.attr('height', squareSize)
+//		.attr('transform', 'translate(0,'+(sqrPlusPadding*3)+')')
+//		.attr('fill', self.colorScheme[1]);
+//	self.legend.append('svg:text')
+//		.attr('transform', 'translate('+(sqrPlusPadding)+','+(sqrPlusPadding*3)+')')
+//		.attr('dy', '1em')
+//		.text('Papers in category "Immunobiology" (cluster 2)');
 };
 
 hieterGraph.prototype.lineChartInit = function() {
@@ -840,6 +1058,7 @@ hieterGraph.prototype.updateLineChart = function() {
 };
 
 hieterGraph.prototype.displayNodeInfo = function(d) {
+	var self = this;
 
 	var nodeInfo = d3.select('#nodeInfo')
 	nodeInfo.classed('hidden', false);
@@ -847,7 +1066,7 @@ hieterGraph.prototype.displayNodeInfo = function(d) {
 	var displayText = "pID: " + d.pID + spc + "cluster: " + d.cluster + spc + "year: " + d.Year ;
 	nodeInfo.select('.line1').html(displayText);
 	nodeInfo.select('.line2').html(d.Title);
-	nodeInfo.selectAll('p').attr('color', self.colorScheme[4]);
+	//nodeInfo.selectAll('p').attr('color', self.colorScheme[4]);
 };
 
 	

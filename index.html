@@ -25,6 +25,7 @@ h1 {
   width: 75%;
   text-align: left;
   font-size: .8em;
+  pointer-events: none;
 }
 
 #description p {
@@ -61,12 +62,14 @@ h1 {
   pointer-events: none;
 }
 
-.fadeIn {
+/*.fadeIn {
   -webkit-animation: fade 2s;
   animation: fade 2s;
   opacity: 1
 }
+*/
 /* -fail- */
+/*
 @-webkit-keyframes fade {
   from {opacity: 0}
   to {opacity: 1}
@@ -80,7 +83,9 @@ h1 {
   animation: fadeout 3s;
   opacity: 0
 }
+*/
 /* -fail- */
+/*
 @-webkit-keyframes fadeout {
   from {opacity: 1}
   to {opacity: 0}
@@ -88,7 +93,7 @@ h1 {
   from {opacity: 1}
   to {opacity: 0}
 }
-
+*/
 .annotation p {
   margin: 0;
   padding: 0;
@@ -119,7 +124,8 @@ button {
 <div id="description"></div>
 <div id="nodeInfo"><p class="line1"></p><p class="line2"</p></div>
 <button id="yearButton", style="opacity: 0.4">Next Year</button>
-<button id="disconnectButton">Disconnect Ego Node</button>
+<button id="disconnectButton", style="opacity: 0.4">Disconnect Ego Node</button>
+<button id="pauseButton">Pause</button>
 <button id="speedUpButton">Faster</button>
 <button id="stopButton">STOP</button>
 <button id="reloadButton">Reload</button>
