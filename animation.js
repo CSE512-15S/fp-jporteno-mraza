@@ -1,3 +1,9 @@
+// http://grokbase.com/t/gg/d3-js/1385dkbt4v/line-transition-example-in-d3-v3
+function interrupt() {
+	var lock = this.__transition__;
+	if (lock) lock.active = 0;
+}
+
 // http://stackoverflow.com/questions/10692100/invoke-a-callback-at-the-end-of-a-transition
 // https://groups.google.com/forum/#!msg/d3-js/WC_7Xi6VV50/j1HK0vIWI-EJ
 function endall(transition, callback) {
@@ -128,13 +134,15 @@ function hieterGraph() {
 		if (self.currYear >= d3.max(self.allNodes, function(d) { return d.Year; }))
 			{console.log('goto finish'); 
 			self.finishAnimation();}
+		self.startIntervalTimer();
 	}
 
 	self.finishAnimation = function() {
 		//self.stopIntervalTimer();
-		if (self.timer) clearInterval(self.timer);
-		window.clearInterval(self.timer);
+		//if (self.timer) clearInterval(self.timer);
+		//window.clearInterval(self.timer);
 		self.timer = 0;
+		self.svg.each(interrupt);
 		d3.selectAll('#speedUpButton,#pauseButton,#stopButton')
 			.on('click',null)
 			.style('pointer-events', 'none')
@@ -211,15 +219,17 @@ function hieterGraph() {
 //		});
 //	};
 	self.startIntervalTimer = function() {
-			clearInterval(self.timer);
-			self.timer = window.setInterval(function() {
-				self.advanceYear()
-			}, self.transitionTimePerYear);
+//			clearInterval(self.timer);
+//			self.timer = window.setInterval(function() {
+//				self.advanceYear()
+//			}, self.transitionTimePerYear);
+			self.svg.transition().duration(self.transitionTimePerYear)
+				.each('end', self.advanceYear);
 	};
 
 	// todo: deprecate this
 	self.stopIntervalTimer = function() {
-		if (self.timer) clearInterval(self.timer);
+		//if (self.timer) clearInterval(self.timer);
 		self.timer = 0;
 	};
 
@@ -266,10 +276,18 @@ hieterGraph.prototype.init = function() {
 	d3.tsv('hieterNodes.tsv', function(nodes) {
 
 		self.allNodes = nodes;
+
+		// Set up a scale for Eigenfactor in order to encode size of nodes by Eigenfactor (influence)
+		var eigenFactorMax = d3.max(self.allNodes, function(d) {return d.EF; });
+		self.eigenFactorScale = d3.scale.linear()
+			.domain([0, eigenFactorMax])
+			.range([0, 1]);
+
 		self.allNodes.forEach(function(d) {
 			// Convert strings to numbers
 			d.pID = + d.pID;
 			d.Year = +d.Year;
+			d.radius = 4.5 + (self.eigenFactorScale(d.EF) * 10)
 		});
 		self.allNodes = self.allNodes.filter(function(d) { return d.Year != 0; });
 
@@ -283,6 +301,7 @@ hieterGraph.prototype.init = function() {
 		// Move ego node back to front if the year sort screwed it up
 		self.moveEgoNodeToFront();
 		
+
 		// Add special properties to the ego node:
 		self.allNodes[0].fixed = true;
 		// position in center
@@ -402,7 +421,8 @@ hieterGraph.prototype.addEventListeners = function() {
 		{$pauseButton.addClass('clicked')
 			.html('Resume');
 		console.log(self.timer);
-		if (self.timer) clearInterval(self.timer);
+		self.svg.each(interrupt);
+		//if (self.timer) clearInterval(self.timer);
 		self.timer = 0; }
 	};
 
@@ -416,7 +436,7 @@ hieterGraph.prototype.addEventListeners = function() {
 	d3.select('#speedUpButton').on('click', function() {
 		self.transitionTimePerYear = 150;
 		self.doAnnotations = false; // Turn off annotations
-		if (self.timer) clearInterval(self.timer);
+		//if (self.timer) clearInterval(self.timer);
 		self.timer = 0;
 		d3.selectAll('.legendItem')
 			.transition().delay(1000).duration(2000)
@@ -424,7 +444,8 @@ hieterGraph.prototype.addEventListeners = function() {
 		self.startIntervalTimer();
 	});
 
-	d3.select('#stopButton').on('click', function() { if (self.timer) clearInterval(self.timer); self.timer=0; });
+	//d3.select('#stopButton').on('click', function() { if (self.timer) clearInterval(self.timer); self.timer=0; });
+	d3.select('#stopButton').on('click', function() { self.svg.each(interrupt); });
 
 	d3.select('#reloadButton').on('click', function() { window.location.reload(true); });
 
@@ -515,7 +536,8 @@ hieterGraph.prototype.graphInit = function() {
 		.transition()
 		.duration(1000)
 		.attr('r', function(d) {
-			return 4.5 + (self.eigenFactorScale(d.EF) * 10);
+			//return 4.5 + (self.eigenFactorScale(d.EF) * 10);
+			return d.radius;
 		})
 		.each('end', function() {
 			// reveal legend
@@ -573,7 +595,15 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 
 
 	// Fade nodes from previous years
-	d3.selectAll('.node.visible').filter(function(d) {return d.pID != self.egoID; })
+	//d3.selectAll('.node.visible').filter(function(d) {return d.pID != self.egoID; })
+	//	.transition().delay(500).duration(1000).style('opacity', .5);
+	d3.selectAll('.node.visible').filter(function(d) {
+		// Filter out the ego node
+		if (d.pID == self.egoID) {console.log('ego'); return false;}
+		// Filter out any nodes currently transitioning (we can fade them next time)
+		if (d.beingAnnotated) {console.log('beingAnnotated'); return false;}
+		return true;
+	       	})
 		.transition().delay(500).duration(1000).style('opacity', .5);
 
 	// Fade links from previous years
@@ -608,7 +638,8 @@ hieterGraph.prototype.updateNodesAndLinks = function() {
 		.delay(function(d, i) { return i * timePerNode; })
 		.duration(nodeAppearDuration)
 		.attr('r', function(d) {
-			return 4.5 + (self.eigenFactorScale(d.EF) * 10);
+			//return 4.5 + (self.eigenFactorScale(d.EF) * 10);
+			return d.radius;
 		})
 		.each('end', function(d) {
 			d.linksThisNodeIsSource = newLinks.filter(function(l) { return l.source.pID === d.pID; });
@@ -698,7 +729,8 @@ hieterGraph.prototype.annotation1 = function() {
 
 hieterGraph.prototype.annotationNewCluster = function(n) {
 	var self = this;
-	if (self.timer) clearInterval(self.timer);
+	//if (self.timer) clearInterval(self.timer);
+	self.svg.each(interrupt);
 	self.timer = 0;
 	var clusterSplit = n.cluster.split(':');
 	var clusterInfo = self.clusters[self.clustersToAnnotate.indexOf(clusterSplit[0])];
@@ -731,11 +763,21 @@ hieterGraph.prototype.annotationNewCluster = function(n) {
 	console.log(n);
 	d3.selectAll('.node')
 		.filter(function(d) {return d.pID===n.pID;})
+		.each(function(d) {d.beingAnnotated = true;})
 		.transition().delay(1000).duration(3000)
 		.attr('r', 30)
+		.each('end', function() {
+			console.log(this);
+			d3.select(this).transition().delay(2000).duration(3000)
+				.attr('r', function(d) { return d.radius; })
+				.each('end', function(d) {d.beingAnnotated = false;});
+		});
+		//.each('end', function() {
+		//d3.select(this).transition().delay(5000).duration(3000)
+		//.attr('r', function(d) { console.log(d3.select(this).attr('r')); return +(d3.select(this).attr('r')); });});
 		//.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r') + 20; });
-		.transition().delay(5000).duration(3000)
-		.attr('r', function(d) { console.log(d3.select(this).attr('r')); return d3.select(this).attr('r'); });
+		//.transition().delay(5000).duration(3000)
+		//.attr('r', function(d) { return d.radius; });
 	self.svg.append('svg:line')
 		.attr('x1', position.x + (self.annotationWidth/2))
 		.attr('x2', n.x)
@@ -752,13 +794,15 @@ hieterGraph.prototype.annotationNewCluster = function(n) {
 	
 	var $annotation1Div = $('#annotationCluster' + clusterInfo.cluster);
 	//$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(1000).fadeTo(3000, 0, function() {self.startIntervalTimer();});
-	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0, self.startIntervalTimer);
+	self.startIntervalTimer();
+	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0);
+	//$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0, self.startIntervalTimer);
 	return;
 };
 
 hieterGraph.prototype.annotationHighestEF = function(n) {
 	var self = this;
-	if (self.timer) clearInterval(self.timer);
+	//if (self.timer) clearInterval(self.timer);
 	self.timer=0;
 	var divX = 150;
 	var divY = 150;
