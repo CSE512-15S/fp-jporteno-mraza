@@ -19,15 +19,20 @@ function endall(transition, callback) {
 function hieterGraph() {
 	var self = this;
 
+	// VARIABLE DEFINITIONS
+	
+	// Graph SVG dimensions
 	self.width = 960;
 	self.height = 500;
 
+	// Annotation variables
 	self.doAnnotations = true;
 	// A few options for annotation position
 	self.annotationHeight = 250;
 	self.annotationWidth = 300;
 	self.annotationPositions = [{x: 150, y: 150}, {x:self.width - self.annotationWidth-50, y: self.height - self.annotationHeight - 50}];
 
+	// Line chart SVG dimensions
 	self.yearsMargin = {top: 30, right: 20, bottom: 30, left: 50};
 	self.yearsWidth = self.width *3/4 - self.yearsMargin.left - self.yearsMargin.right;
 	self.yearsHeight = 110 - self.yearsMargin.top - self.yearsMargin.bottom;
@@ -35,7 +40,10 @@ function hieterGraph() {
 	self.yearsXScale = d3.time.scale().range([0, self.yearsWidth]);
 	self.yearsYScale = d3.scale.linear().range([self.yearsHeight, 0]);
 
+
+	// Declare some global variables
 	self.svg;
+	self.loadingText;
 	self.group;
 	self.node;
 	self.link;
@@ -79,9 +87,7 @@ function hieterGraph() {
 
 	self.clusters = [{'cluster': '2', 'title': 'Immunobiology', 'color': self.colorScheme[1], 'alreadyAnnotated': false},
 			{'cluster': '28', 'title': 'Cancer and Genetics', 'color': self.colorScheme[0], 'alreadyAnnotated': false}];
-//	self.clusters = {'28': {'title': 'Cancer and Genetics', 'color': self.colorScheme[0]},
-//			'2': {'title': 'Immunobiology', 'color': self.colorScheme[1]}};
-	self.clustersToAnnotate = []
+	self.clustersToAnnotate = [];
 	for (var i=0; i < self.clusters.length; i++) {
 		self.clustersToAnnotate.push(self.clusters[i].cluster);
 	}
@@ -116,6 +122,9 @@ function hieterGraph() {
 	//self.zoom = self.makeZoom();
 	//self.drag = self.makeDrag();
 
+
+	// Define some functions that will be useful later:
+	
 	self.moveEgoNodeToFront = function() {
 		// Move the ego node to the front:
 		for (var i=0; i<self.allNodes.length; i++) {
@@ -154,6 +163,8 @@ function hieterGraph() {
 			.style('pointer-events', 'auto')
 			.transition().duration(1000)
 			.style('opacity', 1);
+		
+		// Fade everything back in
 		d3.selectAll('.node').transition().delay(1000)
 			.duration(self.transitionTimePerYear*2)
 			.style('opacity', .9);
@@ -209,29 +220,11 @@ function hieterGraph() {
 		}
 	}
 
-	// Repeatedly call advanceYear on a timer
-//	self.startIntervalTimer = function() {
-//		setTimeout(function() {
-//			clearInterval(self.timer);
-//			self.timer = window.setInterval(function() {
-//				self.advanceYear()
-//			}, self.transitionTimePerYear);
-//		});
-//	};
 	self.startIntervalTimer = function() {
-//			clearInterval(self.timer);
-//			self.timer = window.setInterval(function() {
-//				self.advanceYear()
-//			}, self.transitionTimePerYear);
 			self.svg.transition().duration(self.transitionTimePerYear)
 				.each('end', self.advanceYear);
 	};
 
-	// todo: deprecate this
-	self.stopIntervalTimer = function() {
-		//if (self.timer) clearInterval(self.timer);
-		self.timer = 0;
-	};
 
 	
 	self.init();
@@ -251,9 +244,16 @@ hieterGraph.prototype.init = function() {
 			.attr('id', 'graphSvg')
 			.attr('width', self.width)
 			.attr('height', self.height);
-			
-	// Put up initial annotation
-	if (self.doAnnotations) self.annotation1();
+	// Let the user know that it is loading:
+	self.loadingText = self.svg.append('text')
+			.attr('id', 'loadingText')
+			.attr('text-anchor', 'middle')
+			.attr('x', self.width/2)
+			.attr('y', self.height/2)
+			.attr('pointer-events', 'none')
+			.attr('font-size', '5em')
+			.style('opacity', .5)
+			.text('Loading');
 
 	self.group = self.svg.append('g');
 	self.link = self.group.append('svg:g')
@@ -519,9 +519,16 @@ hieterGraph.prototype.graphInit = function() {
 
 	self.force.start();
 	// Execute force a bit, then stop
-	for (var i = 0; i<1000; ++i) self.force.tick();
+	for (var i = 0; i<10000; ++i) self.force.tick();
 	self.force.stop();
 	newNode.each(function(d) { d.fixed = true; });
+	// Get rid of loading text
+	self.loadingText.transition()
+		.duration(self.transitionTimePerYear/4)
+		.style('opacity', 0)
+		.each('end', function() {d3.select(this).attr('display', 'none');});
+	// Put up initial annotation
+	if (self.doAnnotations) self.annotation1();
 
 	// Set up a scale for Eigenfactor in order to encode size of nodes by Eigenfactor (influence)
 	var eigenFactorMax = d3.max(self.allNodes, function(d) {return d.EF; });
@@ -534,6 +541,7 @@ hieterGraph.prototype.graphInit = function() {
 		.classed('hidden', false)
 		.classed('visible', true)
 		.transition()
+		.delay(self.transitionTimePerYear/4)
 		.duration(1000)
 		.attr('r', function(d) {
 			//return 4.5 + (self.eigenFactorScale(d.EF) * 10);
@@ -723,8 +731,11 @@ hieterGraph.prototype.annotation1 = function() {
 	self.annotation1Div.append('p')
 		.html('Here is the impact it has had since.');
 	
-	var $annotation1Div = $('#annotation1');
-	$annotation1Div.delay(300).fadeTo(2000, 1, 'linear').delay(3000).fadeTo(3000, 0);
+	// Fade in, then fade out
+	self.annotation1Div.transition().delay(self.transitionTimePerYear/4).duration(2000)
+		.style('opacity', 1)
+		.transition().delay(3000).duration(3000)
+		.style('opacity', 0);
 };
 
 hieterGraph.prototype.annotationNewCluster = function(n) {
